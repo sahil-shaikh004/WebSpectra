@@ -54,6 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeFilter = 'all';
     let stepInterval = null;
 
+    // Base API URL configuration:
+    // If loaded from a static server (e.g. VS Code Live Server on :5500, Vite :5173, or file://),
+    // target the FastAPI backend at http://127.0.0.1:8000.
+    // If served directly through FastAPI on port 8000, use relative URL ''.
+    const API_BASE = (window.location.protocol === 'file:' || (window.location.port !== '8000' && window.location.port !== ''))
+        ? 'http://127.0.0.1:8000'
+        : '';
+
     // Check Backend API Health on Load
     checkApiHealth();
 
@@ -96,14 +104,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------------------
     async function checkApiHealth() {
         try {
-            const res = await fetch('/api/health');
+            const res = await fetch(`${API_BASE}/api/health`);
             if (res.ok) {
                 apiStatusText.textContent = 'Engine Ready';
+                apiStatusText.style.color = 'var(--accent-cyan)';
             } else {
-                apiStatusText.textContent = 'Engine Offline';
+                apiStatusText.textContent = 'Engine Offline (Start Backend)';
+                apiStatusText.style.color = 'var(--accent-red)';
             }
         } catch {
-            apiStatusText.textContent = 'Engine Offline';
+            apiStatusText.textContent = 'Engine Offline (Start Backend)';
+            apiStatusText.style.color = 'var(--accent-red)';
         }
     }
 
@@ -120,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startStepAnimation();
 
         try {
-            const response = await fetch('/api/scan', {
+            const response = await fetch(`${API_BASE}/api/scan`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -128,18 +139,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ url: url })
             });
 
-            const data = await response.json();
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (_) {
+                data = null;
+            }
 
             if (!response.ok) {
-                const detailMsg = data.detail || 'An unexpected error occurred while scanning.';
+                if (response.status === 404) {
+                    throw new Error('API route /api/scan not found (404). Please ensure the FastAPI backend is running via "python -m uvicorn backend.main:app --reload" at http://127.0.0.1:8000.');
+                }
+                const detailMsg = (data && data.detail) || `Server responded with status ${response.status}.`;
                 throw new Error(detailMsg);
+            }
+
+            if (!data) {
+                throw new Error('Invalid or empty response from backend scanner.');
             }
 
             // Display Results
             displayScanResults(data);
 
         } catch (err) {
-            showError(err.message || 'Failed to communicate with the WebSpectra scanner.');
+            let msg = err.message || 'Failed to communicate with the WebSpectra scanner.';
+            if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Network request failed')) {
+                msg = 'Unable to connect to WebSpectra backend API. Please make sure the FastAPI server is running with: python -m uvicorn backend.main:app --reload (at http://127.0.0.1:8000)';
+            }
+            showError(msg);
         } finally {
             stopStepAnimation();
             scanningState.classList.add('hidden');
