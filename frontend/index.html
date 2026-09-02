@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSpectra | Web Security Scanner & Rating Platform</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-glow"></div>
+
+    <!-- Top Navigation -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🛡️</span>
+                <span class="logo-text">Web<span class="logo-accent">Spectra</span></span>
+                <span class="version-badge">v1.0 MVP</span>
+            </div>
+            <div class="nav-links">
+                <span class="status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span id="api-status-text">Engine Ready</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Automated Web Application <br><span class="gradient-text">Security Assessment & Rating</span></h1>
+            <p class="hero-subtitle">
+                Inspect security headers, TLS enforcement, and cookie configurations in seconds. 
+                Passive, safe, and non-destructive analysis with instant remediation guidance.
+            </p>
+
+            <!-- Legal / Authorization Warning Banner -->
+            <div class="warning-banner">
+                <div class="warning-icon">⚠️</div>
+                <div class="warning-content">
+                    <strong>Authorization Notice:</strong> Only scan websites you own or have explicit authorization to assess. WebSpectra performs safe, passive HTTP checks only.
+                </div>
+            </div>
+        </section>
+
+        <!-- Scan Input Form -->
+        <section class="scanner-card">
+            <form id="scan-form" class="scan-form">
+                <div class="input-group">
+                    <span class="input-icon">🌐</span>
+                    <input 
+                        type="text" 
+                        id="target-url" 
+                        placeholder="Enter target URL (e.g. https://example.com or example.com)" 
+                        required 
+                        autocomplete="off"
+                    />
+                    <button type="submit" id="scan-btn" class="btn-primary">
+                        <span class="btn-icon">⚡</span>
+                        <span class="btn-text">Start Scan</span>
+                    </button>
+                </div>
+                <!-- Quick Preset Links -->
+                <div class="presets-row">
+                    <span class="presets-label">Quick test:</span>
+                    <button type="button" class="preset-btn" data-url="https://example.com">example.com</button>
+                    <button type="button" class="preset-btn" data-url="https://github.com">github.com</button>
+                    <button type="button" class="preset-btn" data-url="http://httpforever.com">httpforever.com (Insecure demo)</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Scanning State Indicator (Hidden by default) -->
+        <section id="scanning-state" class="state-card hidden">
+            <div class="loader-spinner"></div>
+            <h3 class="scanning-title">Scanning Target Application...</h3>
+            <p id="scanning-step" class="scanning-step-text">Sending safe HTTP GET request & inspecting response headers...</p>
+            <div class="scan-progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </section>
+
+        <!-- Error Alert (Hidden by default) -->
+        <div id="error-alert" class="alert-box error-alert hidden">
+            <div class="alert-icon">❌</div>
+            <div class="alert-body">
+                <h4 class="alert-title">Scan Execution Failed</h4>
+                <p id="error-message" class="alert-text"></p>
+            </div>
+            <button id="dismiss-error-btn" class="close-alert-btn" aria-label="Dismiss">&times;</button>
+        </div>
+
+        <!-- Scan Results Section (Hidden by default) -->
+        <section id="results-section" class="results-container hidden">
+            
+            <!-- Target Summary Bar -->
+            <div class="target-meta-card">
+                <div class="meta-item">
+                    <span class="meta-label">Target URL</span>
+                    <span id="res-target-url" class="meta-val font-mono">--</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Resolved / Final URL</span>
+                    <span id="res-final-url" class="meta-val font-mono">--</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">HTTP Status</span>
+                    <span id="res-status-code" class="meta-val status-badge">--</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Response Time</span>
+                    <span id="res-response-time" class="meta-val">-- ms</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Scan Timestamp</span>
+                    <span id="res-timestamp" class="meta-val font-mono">--</span>
+                </div>
+            </div>
+
+            <!-- Score and Summary Cards Grid -->
+            <div class="score-overview-grid">
+                <!-- Score Radial Card -->
+                <div class="card score-card">
+                    <div class="card-header-clean">
+                        <h3>Security Score</h3>
+                        <span class="heuristic-tag" title="Transparent heuristic formula based on findings">Heuristic Rating</span>
+                    </div>
+                    <div class="score-display-wrapper">
+                        <div class="score-circle-container">
+                            <svg class="score-svg" viewBox="0 0 120 120">
+                                <circle class="score-bg-circle" cx="60" cy="60" r="50"></circle>
+                                <circle id="score-meter" class="score-meter-circle" cx="60" cy="60" r="50"></circle>
+                            </svg>
+                            <div class="score-number-overlay">
+                                <span id="res-score-number" class="score-huge">0</span>
+                                <span class="score-total">/ 100</span>
+                            </div>
+                        </div>
+                        <div class="score-details">
+                            <div class="grade-badge-wrap">
+                                <span class="badge-label">Grade</span>
+                                <span id="res-grade-badge" class="grade-badge grade-f">F</span>
+                            </div>
+                            <div class="risk-badge-wrap">
+                                <span class="badge-label">Risk Classification</span>
+                                <span id="res-risk-badge" class="risk-badge risk-critical">Critical</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="score-disclaimer-text">
+                        * Note: This score is calculated via passive HTTP response headers and does not constitute a full CVSS score or penetration test.
+                    </p>
+                </div>
+
+                <!-- Findings Metric Summary Card -->
+                <div class="card metrics-card">
+                    <div class="card-header-clean">
+                        <h3>Findings Breakdown</h3>
+                        <span id="total-findings-badge" class="total-tag">0 Findings</span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-pill sev-critical">
+                            <span class="metric-label">Critical</span>
+                            <span id="count-critical" class="metric-count">0</span>
+                            <span class="penalty-tag">-25 pts</span>
+                        </div>
+                        <div class="metric-pill sev-high">
+                            <span class="metric-label">High</span>
+                            <span id="count-high" class="metric-count">0</span>
+                            <span class="penalty-tag">-15 pts</span>
+                        </div>
+                        <div class="metric-pill sev-medium">
+                            <span class="metric-label">Medium</span>
+                            <span id="count-medium" class="metric-count">0</span>
+                            <span class="penalty-tag">-7 pts</span>
+                        </div>
+                        <div class="metric-pill sev-low">
+                            <span class="metric-label">Low</span>
+                            <span id="count-low" class="metric-count">0</span>
+                            <span class="penalty-tag">-3 pts</span>
+                        </div>
+                    </div>
+                    <div class="scoring-formula-box">
+                        <code>Score = max(0, 100 - &Sigma; Penalties)</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Findings Section -->
+            <div class="findings-section">
+                <div class="findings-toolbar">
+                    <div class="toolbar-left">
+                        <h2 class="section-heading">Detailed Security Findings</h2>
+                        <span class="subtext">Click on any finding to review impact and copy remediation configs.</span>
+                    </div>
+                    <!-- Severity Filter Tabs -->
+                    <div class="filter-tabs">
+                        <button class="filter-btn active" data-filter="all">All (<span id="tab-count-all">0</span>)</button>
+                        <button class="filter-btn" data-filter="Critical">Critical (<span id="tab-count-critical">0</span>)</button>
+                        <button class="filter-btn" data-filter="High">High (<span id="tab-count-high">0</span>)</button>
+                        <button class="filter-btn" data-filter="Medium">Medium (<span id="tab-count-medium">0</span>)</button>
+                        <button class="filter-btn" data-filter="Low">Low (<span id="tab-count-low">0</span>)</button>
+                    </div>
+                </div>
+
+                <!-- Finding Cards List Container -->
+                <div id="findings-list" class="findings-list">
+                    <!-- Populated dynamically by app.js -->
+                </div>
+
+                <!-- No Findings State (Clean Target) -->
+                <div id="no-findings-state" class="clean-target-card hidden">
+                    <div class="clean-icon">✨</div>
+                    <h3>No Security Weaknesses Detected</h3>
+                    <p>All evaluated HTTP security headers, TLS policies, and cookie attributes are properly configured!</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p><strong>WebSpectra</strong> &mdash; Automated Defensive Security Assessment MVP</p>
+            <p class="footer-subtext">Designed for developers, security engineers, and hackathon demonstrations.</p>
+        </div>
+    </footer>
+
+    <!-- Vanilla JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
